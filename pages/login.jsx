@@ -27,8 +27,6 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-
-    await router.push('/')
   }
 
   return (
