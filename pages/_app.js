@@ -1,51 +1,62 @@
 import '../styles/globals.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { getBrowserSupabase } from '../lib/supabase-browser'
 
+// Use the singleton instance outside component render to guarantee single instance
+const supabase = getBrowserSupabase()
+const PUBLIC_ROUTES = ['/login', '/signup']
+
 export default function App({ Component, pageProps }) {
   const router = useRouter()
-  const supabase = useMemo(() => getBrowserSupabase(), [])
+  const [session, setSession] = useState(null)
   const [authReady, setAuthReady] = useState(false)
-  const publicRoutes = ['/login', '/signup']
 
+  // 1. Centralized Session Loading & Auth Listener
   useEffect(() => {
     let mounted = true
 
-    async function guardCurrentRoute() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+    // Load initial session
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (mounted) {
+          setSession(data.session ?? null)
+          setAuthReady(true)
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setAuthReady(true)
+        }
+      })
 
-      if (!mounted) return
-      const isPublicRoute = publicRoutes.includes(router.pathname)
-
-      if (!session && !isPublicRoute) {
-        await router.replace('/signup')
-      } else if (session && isPublicRoute) {
-        await router.replace('/')
-      }
-
-      if (mounted) setAuthReady(true)
-    }
-
-    guardCurrentRoute()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const isPublicRoute = publicRoutes.includes(router.pathname)
-
-      if (!session && !isPublicRoute) {
-        router.replace('/signup')
-      } else if (session && isPublicRoute) {
-        router.replace('/')
+    // Subscribe to auth changes (e.g. login, logout, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (mounted) {
+        setSession(newSession)
       }
     })
 
     return () => {
       mounted = false
-      authListener.subscription.unsubscribe()
+      subscription.unsubscribe()
     }
-  }, [router, router.pathname, supabase])
+  }, []) // Empty dependency array ensures this effect only runs once on mount
+
+  // 2. Route Guarding Side-Effect
+  useEffect(() => {
+    if (!authReady) return
+
+    const isPublicRoute = PUBLIC_ROUTES.includes(router.pathname)
+
+    if (!session && !isPublicRoute) {
+      router.replace('/signup')
+    } else if (session && isPublicRoute) {
+      router.replace('/')
+    }
+  }, [authReady, session, router.pathname])
 
   if (!authReady) {
     return (
@@ -55,5 +66,6 @@ export default function App({ Component, pageProps }) {
     )
   }
 
-  return <Component {...pageProps} />
+  // Pass session to pages so they don't need to refetch it
+  return <Component {...pageProps} session={session} />
 }

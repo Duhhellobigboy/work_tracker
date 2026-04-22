@@ -32,11 +32,6 @@ export default function SignupPage() {
 
     const hasSession = !!data?.session
 
-    if (hasSession) {
-      await router.push('/')
-      return
-    }
-
     setSuccess('Account created. Check your email to verify, then log in.')
     setLoading(false)
   }

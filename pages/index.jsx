@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { getBrowserSupabase } from '../lib/supabase-browser'
 
+const supabase = getBrowserSupabase()
 
 async function apiFetch(path, options = {}, accessToken) {
   const res = await fetch(path, {
@@ -73,9 +74,8 @@ function TaskCard({ task, busyId, onDone, onSnooze }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Home() {
+export default function Home({ session }) {
   const router = useRouter()
-  const supabase = getBrowserSupabase()
   const [tasks, setTasks]       = useState([])
   const [input, setInput]       = useState('')
   const [adding, setAdding]     = useState(false)
@@ -89,9 +89,6 @@ export default function Home() {
   }
 
   async function apiFetchWithAuth(path, options = {}) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
     const token = session?.access_token
     return apiFetch(path, options, token)
   }
@@ -107,7 +104,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [session])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])
 
@@ -169,7 +166,6 @@ export default function Home() {
   async function handleLogout() {
     try {
       await supabase.auth.signOut()
-      await router.replace('/signup')
     } catch (e) {
       flash(e.message, 'error')
     }
