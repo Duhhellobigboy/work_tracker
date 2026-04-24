@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { getBrowserSupabase } from '../lib/supabase-browser'
+import DashboardLayout from '../components/layout/DashboardLayout'
 
 const supabase = getBrowserSupabase()
 
@@ -163,36 +164,19 @@ export default function Home({ session }) {
     }
   }
 
-  async function handleLogout() {
-    try {
-      await supabase.auth.signOut()
-    } catch (e) {
-      flash(e.message, 'error')
-    }
-  }
-
   const pending = tasks.filter(t => t.status === 'pending')
   const done    = tasks.filter(t => t.status === 'done')
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-xl mx-auto px-4 py-10">
-
-        <div className="mb-8 flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">Task Manager</h1>
-            <p className="text-gray-500 text-sm">Procurement RFP tracker</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs font-semibold text-gray-200 transition hover:bg-gray-800"
-          >
-            Log out
-          </button>
+    <DashboardLayout session={session}>
+      <div className="mb-6 flex items-start justify-between gap-3 border-b border-gray-800 pb-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Upcoming Tasks</h1>
+          <p className="text-gray-500 text-sm">Procurement RFP tracker</p>
         </div>
+      </div>
 
-        <Notice {...notice} />
+      <Notice {...notice} />
 
         {/* Add task */}
         <form onSubmit={handleAdd} className="flex gap-2 mb-10">
@@ -243,7 +227,6 @@ export default function Home({ session }) {
           </section>
         )}
 
-      </div>
-    </div>
+    </DashboardLayout>
   )
 }
