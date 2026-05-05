@@ -38,13 +38,8 @@ async function createTask(req, res) {
     return res.status(400).json({ error: 'input is required' })
   }
 
-  // 1. AI parsing
-  let parsed
-  try {
-    parsed = await parseTask(input)
-  } catch (e) {
-    return res.status(422).json({ error: `AI parsing failed: ${e.message}` })
-  }
+  // 1. AI parsing (resilient to failure)
+  const parsed = await parseTask(input)
 
   // 2. Insert into Supabase for authenticated owner
   const { data, error } = await supabase
