@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { getBrowserSupabase } from '../lib/supabase-browser'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
@@ -47,6 +48,12 @@ function TaskCard({ task, busyId, onDone, onSnooze }) {
         <p className={`text-xs mt-0.5 ${overdue ? 'text-red-400' : 'text-gray-500'}`}>
           {task.due_date}{overdue ? ' — overdue' : ''}
         </p>
+        <Link
+          href={`/copilot-tools?seed=${btoa(encodeURIComponent(task.task || ''))}`}
+          className="text-[10px] text-gray-600 hover:text-blue-400 underline mt-1 inline-block transition-colors"
+        >
+          Analyze with Copilot
+        </Link>
       </div>
 
       <Badge status={task.status} />

@@ -12,6 +12,9 @@ export default function DashboardLayout({ children, session, mainClassName }) {
           <Link href="/" className="font-bold text-lg text-white hover:text-blue-400 transition-colors">
             Task Manager
           </Link>
+          <Link href="/copilot-tools" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+            Copilot Assistant
+          </Link>
         </div>
         <ProfileDropdown session={session} />
       </header>
