@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { task_id, action, days } = req.body
+  const { task_id, action, days, title, urgency, due_bucket } = req.body
   const auth = await getRequestAuth(req)
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
   const { user } = auth
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   if (action === 'done') {
     const { data, error } = await supabase
       .from('tasks')
-      .update({ status: 'done' })
+      .update({ status: 'done', completed_at: new Date().toISOString() })
       .eq('id', task_id)
       .eq('user_id', user.id)
       .select()
@@ -45,10 +45,46 @@ export default async function handler(req, res) {
     const newDate = new Date(existing.due_date)
     newDate.setDate(newDate.getDate() + snoozeBy)
     const due_date = newDate.toISOString().slice(0, 10)
+    const snoozed_until = newDate.toISOString()
 
     const { data, error } = await supabase
       .from('tasks')
-      .update({ due_date })
+      .update({ due_date, snoozed_until })
+      .eq('id', task_id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) return res.status(404).json({ error: 'Task not found' })
+    return res.status(200).json({ task: data })
+  }
+
+  if (action === 'edit') {
+    // fetch existing task
+    const { data: existing, error: fetchErr } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', task_id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchErr) return res.status(404).json({ error: 'Task not found' })
+
+    let updates = { title, urgency, due_bucket };
+
+    // if due_bucket changed, recalculate due_date
+    if (due_bucket && due_bucket !== existing.due_bucket) {
+      const now = new Date();
+      if (due_bucket === '3_days') now.setDate(now.getDate() + 3);
+      else if (due_bucket === '1_week') now.setDate(now.getDate() + 7);
+      else if (due_bucket === '2_weeks') now.setDate(now.getDate() + 14);
+      
+      updates.due_date = now.toISOString().slice(0, 10);
+    }
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
       .eq('id', task_id)
       .eq('user_id', user.id)
       .select()
